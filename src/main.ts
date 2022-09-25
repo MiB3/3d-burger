@@ -44,7 +44,7 @@ const bloomPass = new UnrealBloomPass(
 )
 const composer = new EffectComposer(renderer)
 composer.addPass(renderPass)
-// composer.addPass(bloomPass)
+composer.addPass(bloomPass)
 
 new OrbitControls(camera, renderer.domElement)
 // const controls = new OrbitControls(camera, renderer.domElement)
@@ -157,32 +157,40 @@ function render() {
 
 // render()
 
-// Add controls
-var gui = new GUI();
+function addGui() {
+  // Add controls
+  var gui = new GUI();
 
-// const envMaps = {'envMap': hdrEquirect, 'none': null}
-// const envMapsKeys = ['envMap', 'none']
-// const data = {
-//   envMaps: envMapsKeys[0]
-// }
+  // const envMaps = {'envMap': hdrEquirect, 'none': null}
+  // const envMapsKeys = ['envMap', 'none']
+  // const data = {
+  //   envMaps: envMapsKeys[0]
+  // }
 
-const bgMeshMaterials = {'texture': textureMaterial, 'white': whiteMaterial}
-const bgMeshMaterialsKeys = ['texture', 'white']
-const bgMeshMaterialsData = {
-  bgMeshMaterials: bgMeshMaterialsKeys[0]
+  const bgMeshMaterials = {'texture': textureMaterial, 'white': whiteMaterial}
+  const bgMeshMaterialsKeys = ['texture', 'white']
+  const bgMeshMaterialsData = {
+    bgMeshMaterials: bgMeshMaterialsKeys[0]
+  }
+
+  gui.add(transmissionMaterial, 'clearcoat', 0, 1, 0.01);
+  gui.add(transmissionMaterial, 'clearcoatRoughness', 0, 1, 0.01);
+  // gui.add(data, 'envMaps', envMapsKeys).onChange((value) => transmissionMaterial.envMap = envMaps[value]);
+  gui.add(transmissionMaterial, 'envMapIntensity', 0, 1, 0.01);
+  gui.add(transmissionMaterial, 'metalness', 0, 1, 0.01);
+  gui.add(transmissionMaterial, 'roughness', 0, 1, 0.01);
+  gui.add(transmissionMaterial, 'thickness', 0, 10, 0.1);
+  gui.add(transmissionMaterial, 'transmission', 0, 1, 0.01);
+  // @ts-ignore
+  gui.add(bgMeshMaterialsData, 'bgMeshMaterials', bgMeshMaterialsKeys).onChange((value:string) => bgMesh.material = bgMeshMaterials[value])
+  gui.add({bloomPass: true}, 'bloomPass').onChange((value:boolean) => {
+    if (value) {
+      composer.addPass(bloomPass)
+    } else {
+      composer.removePass(bloomPass)
+    }
+})
 }
-
-gui.add(transmissionMaterial, 'clearcoat', 0, 1, 0.01);
-gui.add(transmissionMaterial, 'clearcoatRoughness', 0, 1, 0.01);
-// gui.add(data, 'envMaps', envMapsKeys).onChange((value) => transmissionMaterial.envMap = envMaps[value]);
-gui.add(transmissionMaterial, 'envMapIntensity', 0, 1, 0.01);
-gui.add(transmissionMaterial, 'metalness', 0, 1, 0.01);
-gui.add(transmissionMaterial, 'roughness', 0, 1, 0.01);
-gui.add(transmissionMaterial, 'thickness', 0, 10, 0.1);
-gui.add(transmissionMaterial, 'transmission', 0, 1, 0.01);
-// @ts-ignore
-gui.add(bgMeshMaterialsData, 'bgMeshMaterials', bgMeshMaterialsKeys).onChange((value:string) => bgMesh.material = bgMeshMaterials[value])
-
 
 const clock = new Clock()
 
@@ -206,4 +214,5 @@ function animate() {
   render()
 }
 
+addGui()
 animate()
