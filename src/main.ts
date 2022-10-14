@@ -167,10 +167,45 @@ function addGui() {
   //   envMaps: envMapsKeys[0]
   // }
 
-  const bgMeshMaterials = {'texture': textureMaterial, 'white': whiteMaterial}
-  const bgMeshMaterialsKeys = ['texture', 'white']
-  const bgMeshMaterialsData = {
-    bgMeshMaterials: bgMeshMaterialsKeys[0]
+  let bgMeshMaterials = {'Default texture': textureMaterial, 'White': whiteMaterial, '> Upload own texture': undefined}
+  const bgMeshMaterialsKeys = () => {
+    return Object.keys(bgMeshMaterials)
+  }
+  let bgMeshMaterialsData = {
+    bgMeshMaterials: bgMeshMaterialsKeys()[0]
+  }
+
+  function updateDropdown(target, list, toSelect){
+    let innerHTMLStr = "";
+    for(var i=0; i<list.length; i++){
+        var str = "<option value='" + list[i] + "'>" + list[i] + "</option>";
+        innerHTMLStr += str;
+    }
+
+    if (innerHTMLStr != "") {
+      target.domElement.children[0].innerHTML = innerHTMLStr;
+    }
+
+    // set the new value
+    target.setValue(toSelect)
+    target.domElement.children[0].selectedIndex = list.indexOf(toSelect)
+  }
+
+  // upload custom backgroudn texture
+  var bgMeshMaterialTextureInput = document.createElement('input');
+  bgMeshMaterialTextureInput.type = 'file';
+  bgMeshMaterialTextureInput.onchange = e => { 
+
+    // getting a hold of the file reference
+    var file = e.target.files[0];
+
+    const fileUrl = URL.createObjectURL(file);
+    const bgTexture = new THREE.TextureLoader().load(fileUrl)
+    const textureMaterial = new THREE.MeshBasicMaterial({map: bgTexture})
+
+    const textureName = 'Upload ' + (bgMeshMaterialsKeys().length - 2)
+    bgMeshMaterials[textureName] = textureMaterial
+    updateDropdown(bgMeshMaterialGUIController, bgMeshMaterialsKeys(), textureName)
   }
 
   gui.add(transmissionMaterial, 'clearcoat', 0, 1, 0.01);
@@ -182,7 +217,13 @@ function addGui() {
   gui.add(transmissionMaterial, 'thickness', 0, 10, 0.1);
   gui.add(transmissionMaterial, 'transmission', 0, 1, 0.01);
   // @ts-ignore
-  gui.add(bgMeshMaterialsData, 'bgMeshMaterials', bgMeshMaterialsKeys).onChange((value:string) => bgMesh.material = bgMeshMaterials[value])
+  let bgMeshMaterialGUIController = gui.add(bgMeshMaterialsData, 'bgMeshMaterials', bgMeshMaterialsKeys()).onChange((value:string) => {
+    if (value === '> Upload own texture') {
+      bgMeshMaterialTextureInput.click();
+    } else {
+      bgMesh.material = bgMeshMaterials[value]
+    }
+  }).listen()
   gui.add({bloomPass: true}, 'bloomPass').onChange((value:boolean) => {
     if (value) {
       composer.addPass(bloomPass)
