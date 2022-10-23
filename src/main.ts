@@ -167,7 +167,7 @@ function addGui() {
   //   envMaps: envMapsKeys[0]
   // }
 
-  let bgMeshMaterials = {'Default texture': textureMaterial, 'White': whiteMaterial, '> Upload own texture': undefined}
+  let bgMeshMaterials:any = {'Default texture': textureMaterial, 'White': whiteMaterial, '> Upload own texture': undefined}
   const bgMeshMaterialsKeys = () => {
     return Object.keys(bgMeshMaterials)
   }
@@ -175,7 +175,7 @@ function addGui() {
     bgMeshMaterials: bgMeshMaterialsKeys()[0]
   }
 
-  function updateDropdown(target, list, toSelect){
+  function updateDropdown(target: any, list:any, toSelect:any){
     let innerHTMLStr = "";
     for(var i=0; i<list.length; i++){
         var str = "<option value='" + list[i] + "'>" + list[i] + "</option>";
@@ -194,10 +194,13 @@ function addGui() {
   // upload custom backgroudn texture
   var bgMeshMaterialTextureInput = document.createElement('input');
   bgMeshMaterialTextureInput.type = 'file';
-  bgMeshMaterialTextureInput.onchange = e => { 
+  bgMeshMaterialTextureInput.onchange = (e) => { 
 
     // getting a hold of the file reference
-    var file = e.target.files[0];
+    const inputElement = e.target as HTMLInputElement
+    const file = inputElement.files?.item(0);
+
+    if (!file) return
 
     const fileUrl = URL.createObjectURL(file);
     const bgTexture = new THREE.TextureLoader().load(fileUrl)
