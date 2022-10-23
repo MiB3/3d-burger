@@ -185,28 +185,57 @@ function addGui() {
 
 const clock = new Clock()
 
-var mouseDownPosition = {x: 0, y: 0};
+type Position = {x: number, y: number}
+var mouseDownPosition : Position | null;
+var mouseMovePosition: Position | null;
 var mousDownTime = 0;
 var rotationSpeedY = 0;
+const raycaster = new THREE.Raycaster();
+
 function addMouseControls() {
   canvas?.addEventListener('mousedown', (e) => {
-    mousDownTime = clock.getElapsedTime()
-    mouseDownPosition = {x: e.clientX, y: e.clientY}
-  })
+    const currentPosition = {x: e.clientX, y: e.clientY}
 
-  canvas?.addEventListener('mouseup', (e) => {
-    if (e.y == mouseDownPosition.y) {
-      rotationSpeedY = 0;
+    var rect = renderer.domElement.getBoundingClientRect();
+    var mouse = new THREE.Vector2()
+    mouse.x = ( ( e.clientX - rect.left ) / rect.width ) * 2 - 1;
+    mouse.y = - ( ( e.clientY - rect.top ) / rect.height ) * 2 + 1;
+
+    raycaster.setFromCamera( mouse, camera );
+    const intersects = raycaster.intersectObjects( [burgerMesh] );
+    if (intersects.length == 0) {
       return
     }
 
-    const dragLength = Math.sqrt(Math.pow(e.clientX - mouseDownPosition.x, 2) + Math.pow(e.clientY - mouseDownPosition.y, 2))
+    mousDownTime = clock.getElapsedTime()
+    mouseDownPosition = currentPosition
+    mouseMovePosition = null
+  })
+
+  canvas?.addEventListener('mousemove', (e) => {
+    if (!mouseDownPosition) {
+      return
+    }
+
+    const currentPosition = {x: e.clientX, y: e.clientY}
+    const referencePosition = mouseMovePosition ? mouseMovePosition : mouseDownPosition
+
+    const dragLength = Math.sqrt(Math.pow(currentPosition.x - referencePosition.x, 2) + Math.pow(currentPosition.y - referencePosition.y, 2))
     const dragTime = clock.getElapsedTime() - mousDownTime
-    const dragDirection = Math.sign(e.clientX - mouseDownPosition.x)
-    const damping = 10000
+    const dragDirection = Math.sign(currentPosition.x - referencePosition.x)
+    const damping = 30000
     rotationSpeedY += dragDirection * dragLength / dragTime / damping
-    console.log(rotationSpeedY)
-    
+
+    mouseMovePosition = currentPosition
+  })
+
+  canvas?.addEventListener('mouseup', (e) => {
+    if (e.x == mouseDownPosition?.x) {
+      rotationSpeedY = 0;
+    }
+
+    mouseMovePosition = null
+    mouseDownPosition = null
   })
 }
 
