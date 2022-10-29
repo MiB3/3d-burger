@@ -1,6 +1,5 @@
 import './style.css'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass'
@@ -40,8 +39,6 @@ const bloomPass = new UnrealBloomPass(
 const composer = new EffectComposer(renderer)
 composer.addPass(renderPass)
 composer.addPass(bloomPass)
-
-// new OrbitControls(camera, renderer.domElement)
 
 const whiteMaterial = new THREE.MeshBasicMaterial()
 
@@ -113,7 +110,7 @@ function render() {
 
 function addGui() {
   // Add controls
-  var gui = new GUI();
+  var gui = new GUI({ width: 350 } );
 
   let bgMeshMaterials:any = {'Default texture': textureMaterial, 'White': whiteMaterial, '> Upload own texture': undefined}
   const bgMeshMaterialsKeys = () => {
@@ -140,15 +137,17 @@ function addGui() {
   }
 
   // upload custom backgroudn texture
-  var bgMeshMaterialTextureInput = document.createElement('input');
+  const bgMeshMaterialTextureInput = document.createElement('input');
   bgMeshMaterialTextureInput.type = 'file';
-  bgMeshMaterialTextureInput.onchange = (e) => { 
-
+  document.querySelector('body')?.appendChild(bgMeshMaterialTextureInput)
+  bgMeshMaterialTextureInput.onchange = (e) => {
     // getting a hold of the file reference
     const inputElement = e.target as HTMLInputElement
     const file = inputElement.files?.item(0);
 
-    if (!file) return
+    if (!file) {
+      return
+    }
 
     const fileUrl = URL.createObjectURL(file);
     const bgTexture = new THREE.TextureLoader().load(fileUrl)
@@ -167,20 +166,25 @@ function addGui() {
   gui.add(transmissionMaterial, 'thickness', 0, 10, 0.1);
   gui.add(transmissionMaterial, 'transmission', 0, 1, 0.01);
   // @ts-ignore
-  let bgMeshMaterialGUIController = gui.add(bgMeshMaterialsData, 'bgMeshMaterials', bgMeshMaterialsKeys()).onChange((value:string) => {
+  let bgMeshMaterialGUIController = gui.add(bgMeshMaterialsData, 'bgMeshMaterials', bgMeshMaterialsKeys()).onChange((value: string) => {
     if (value === '> Upload own texture') {
       bgMeshMaterialTextureInput.click();
     } else {
       bgMesh.material = bgMeshMaterials[value]
     }
   }).listen()
+  bgMeshMaterialGUIController.domElement.addEventListener('click', (e) => {
+    if (bgMeshMaterialGUIController.getValue() === '> Upload own texture') {
+      bgMeshMaterialTextureInput.click();
+    }
+  })
   gui.add({bloomPass: true}, 'bloomPass').onChange((value:boolean) => {
     if (value) {
       composer.addPass(bloomPass)
     } else {
       composer.removePass(bloomPass)
     }
-})
+  })
 }
 
 const clock = new Clock()
@@ -192,48 +196,73 @@ var mousDownTime = 0;
 var rotationSpeedY = 0;
 const raycaster = new THREE.Raycaster();
 
+function mouseStartEventHandler(clientX: number, clientY: number) {
+  const currentPosition = {x: clientX, y: clientY}
+
+  var rect = renderer.domElement.getBoundingClientRect();
+  var mouse = new THREE.Vector2()
+  mouse.x = ( ( clientX - rect.left ) / rect.width ) * 2 - 1;
+  mouse.y = - ( ( clientY - rect.top ) / rect.height ) * 2 + 1;
+
+  raycaster.setFromCamera( mouse, camera );
+  const intersects = raycaster.intersectObjects( [burgerMesh] );
+  if (intersects.length == 0) {
+    return
+  }
+
+  mousDownTime = clock.getElapsedTime()
+  mouseDownPosition = currentPosition
+  mouseMovePosition = null
+  rotationSpeedY = 0
+}
+
+function mouseMoveEventHandler(clientX: number, clientY: number, speedUpFactor = 1) {
+  if (!mouseDownPosition) {
+    return
+  }
+
+  const currentPosition = {x: clientX, y: clientY}
+  const referencePosition = mouseMovePosition ? mouseMovePosition : mouseDownPosition
+
+  const dragLength = Math.sqrt(Math.pow(currentPosition.x - referencePosition.x, 2) + Math.pow(currentPosition.y - referencePosition.y, 2))
+  const dragTime = clock.getElapsedTime() - mousDownTime
+  if (dragTime === 0) {
+    return
+  }
+
+  const dragDirection = Math.sign(currentPosition.x - referencePosition.x)
+  const damping = 30000 / speedUpFactor
+  rotationSpeedY += dragDirection * dragLength / dragTime / damping
+
+  mouseMovePosition = currentPosition
+}
+
 function addMouseControls() {
   canvas?.addEventListener('mousedown', (e) => {
-    const currentPosition = {x: e.clientX, y: e.clientY}
+    mouseStartEventHandler(e.clientX, e.clientY)
+  })
 
-    var rect = renderer.domElement.getBoundingClientRect();
-    var mouse = new THREE.Vector2()
-    mouse.x = ( ( e.clientX - rect.left ) / rect.width ) * 2 - 1;
-    mouse.y = - ( ( e.clientY - rect.top ) / rect.height ) * 2 + 1;
+  canvas?.addEventListener('touchstart', (e) => {
+    e.preventDefault()
 
-    raycaster.setFromCamera( mouse, camera );
-    const intersects = raycaster.intersectObjects( [burgerMesh] );
-    if (intersects.length == 0) {
-      return
+    const firstTouch = e.touches.item(0)
+    if (firstTouch) {
+      mouseStartEventHandler(firstTouch.clientX, firstTouch.clientY)
     }
-
-    mousDownTime = clock.getElapsedTime()
-    mouseDownPosition = currentPosition
-    mouseMovePosition = null
   })
 
   canvas?.addEventListener('mousemove', (e) => {
-    if (!mouseDownPosition) {
-      return
-    }
-
-    const currentPosition = {x: e.clientX, y: e.clientY}
-    const referencePosition = mouseMovePosition ? mouseMovePosition : mouseDownPosition
-
-    const dragLength = Math.sqrt(Math.pow(currentPosition.x - referencePosition.x, 2) + Math.pow(currentPosition.y - referencePosition.y, 2))
-    const dragTime = clock.getElapsedTime() - mousDownTime
-    const dragDirection = Math.sign(currentPosition.x - referencePosition.x)
-    const damping = 30000
-    rotationSpeedY += dragDirection * dragLength / dragTime / damping
-
-    mouseMovePosition = currentPosition
+    mouseMoveEventHandler(e.clientX, e.clientY)
   })
 
-  canvas?.addEventListener('mouseup', (e) => {
-    if (e.x == mouseDownPosition?.x) {
-      rotationSpeedY = 0;
+  canvas?.addEventListener('touchmove', (e) => {
+    const firstTouch = e.touches.item(0)
+    if (firstTouch) {
+      mouseMoveEventHandler(firstTouch.clientX, firstTouch.clientY, 2)
     }
+  })
 
+  canvas?.addEventListener('mouseup touchend touchcancel', (_e) => {
     mouseMovePosition = null
     mouseDownPosition = null
   })
