@@ -173,7 +173,8 @@ function addGui() {
       bgMesh.material = bgMeshMaterials[value]
     }
   }).listen()
-  bgMeshMaterialGUIController.domElement.addEventListener('click', (e) => {
+  bgMeshMaterialGUIController.domElement.addEventListener('click', (_e) => {
+    // fix for ios Safari not allowing .click() via JS if not in a click context
     if (bgMeshMaterialGUIController.getValue() === '> Upload own texture') {
       bgMeshMaterialTextureInput.click();
     }
