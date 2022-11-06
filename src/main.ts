@@ -26,7 +26,7 @@ const renderer = new THREE.WebGLRenderer({
 })
 
 renderer.setPixelRatio(window.devicePixelRatio)
-renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.setClearColor(0x1f1e1c, 0)
 
 const renderPass = new RenderPass(scene, camera)
@@ -290,6 +290,15 @@ function animate() {
   }
 
   render()
+}
+
+window.addEventListener('resize', onWindowResize, false);
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
 addGui()
