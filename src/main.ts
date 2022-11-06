@@ -263,7 +263,17 @@ function addMouseControls() {
     }
   })
 
-  canvas?.addEventListener('mouseup touchend touchcancel', (_e) => {
+  canvas?.addEventListener('mouseup', (_e) => {
+    mouseMovePosition = null
+    mouseDownPosition = null
+  })
+
+  canvas?.addEventListener('touchend', (_e) => {
+    mouseMovePosition = null
+    mouseDownPosition = null
+  })
+
+  canvas?.addEventListener('touchcancel', (_e) => {
     mouseMovePosition = null
     mouseDownPosition = null
   })
